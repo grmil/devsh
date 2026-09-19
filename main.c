@@ -132,8 +132,7 @@ void sh_loop() {
     // env can be set up here later for custom prompt
     const char *user = getenv("USER");
     const char *hostname = getenv("HOSTNAME");
-    const char *dir = getenv("PWD");
-    printf("\n%s@%s %s\n> ", user, hostname, dir);
+    printf("\n%s@%s\n> ", user, hostname);
 
     // handle reading failures
     // nread returns num chars on success
