@@ -165,6 +165,27 @@ void sh_loop() {
       free(args);
       break;
     }
+
+    // Run built-in cd command
+    if (strcmp(args[0], "cd") == 0) {
+      if (args[1] == NULL) {
+        char *home = getenv("HOME");
+        if (home == NULL) {
+          fprintf(stderr, "cd: HOME not set\n");
+          continue;
+        }
+        if (chdir(home) != 0) {
+          perror("cd");
+        }
+      } else {
+        if (chdir(args[1]) != 0) {
+          perror("cd");
+        }
+      }
+      free(line);
+      free(args);
+      continue;
+    }
     
     // create and run the desired process (fork-exec)
     int estatus;
