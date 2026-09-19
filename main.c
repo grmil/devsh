@@ -5,9 +5,6 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
-// TODO: Make this dynamic
-#define MAX_ARGS 10
-
 /*
  * reads in a dynamically allocated line from stdin
  *
@@ -34,14 +31,31 @@ int read_line(char **line) {
  * args: where to store the parsed args for future use
  * does not return anything
  */
-void parse_line(char *line, char *args[]) {
-  char *token; 
+int parse_line(char *line, char ***args_ptr) {
+  size_t size = 8;
+  char **args = malloc(size * sizeof(char *));
+  if (args == NULL) {
+    return -1;
+  }
 
   // give strtok the string to work on in the first call
-  token = strtok(line, " \n");
+  char *token = strtok(line, " \n");
 
-  int i = 0;
+  size_t i = 0;
   while (token != NULL) {
+
+    if (i >= size) {
+      size *= 2;
+      
+      // Reallocate if more memory is needed
+      char **tmp = realloc(args, size * sizeof(char *));
+      if (tmp == NULL) {
+        free(args);
+        return -1;
+      }
+      args = tmp;
+    }
+
     args[i] = token;
 
     // later calls to strtok use the same string as the first
@@ -49,8 +63,22 @@ void parse_line(char *line, char *args[]) {
     i++;
   }
 
+  // Reallocate if memory is needed to add NULL arg
+  if (i >= size) {
+    size += 1;
+
+    char **tmp = realloc(args, size * sizeof(char *));
+    if (tmp == NULL) {
+      free(args);
+      return -1;
+    }
+    args = tmp;
+  }
+
   // add null arg for exec syscall to work
   args[i] = NULL;
+  *args_ptr = args;
+  return 0;
 }
 
 /*
@@ -83,6 +111,7 @@ int execute_args(char **args, char *line) {
     // child execution
     if (execvp(args[0], args) == -1) {
       free(line);
+      free(args);
       exit(127);
     }
   }
@@ -96,7 +125,7 @@ int execute_args(char **args, char *line) {
 void sh_loop() {
   while (true) {
     char *line = NULL;
-    char *args[MAX_ARGS];
+    char **args = NULL;
     int nread;
 
     // Output the prompt
@@ -110,22 +139,30 @@ void sh_loop() {
     // nread returns num chars on success
     if ((nread = read_line(&line)) == -1) {
       free(line);
-      break;
+      continue;
     };
 
     // populating `args` using the line that is read in from stdin
-    parse_line(line, args);
+    int status;
+    if ((status = parse_line(line, &args)) == -1) {
+      perror("Parsing Error");
+      free(line);
+      free(args);
+      continue;
+    }
 
 
     // Skip blank commands
     if (args[0] == NULL) {
       free(line);
+      free(args);
       continue;
     } 
 
     // Run built-in quit command
     if (strcmp(args[0], "quit") == 0) {
       free(line);
+      free(args);
       break;
     }
     
@@ -143,10 +180,11 @@ void sh_loop() {
         break;
     }
     free(line);
+    free(args);
   }  
 }
 
-int main(int argc, char **argv) {
+int main() {
 
   // Initialization Stuff -- config, default execution
   sh_loop();
