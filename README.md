@@ -1,11 +1,4 @@
-# devsh
-## Simple Unix Shell with dev features
+# gsh
 
-1. project awareness:
-  - compiling
-  - testing
-  - executing
-
-2. virtual env awareness
-
-3. not posix compliant
+This is a simple shell I wrote for my Operating Systems class (CIS 452) during
+my undergraduate degree at GVSU.
